@@ -15,17 +15,17 @@ Options:
 Example
 
 ```
-$ echo $'01\n02\n03\n04\n05' >/tmp/test.log
+$ for i in {0..4}; do echo $i >>/tmp/test.log; done
 $ ./recat /tmp/test.log
-01
-02
-03
-04
-05
-$ echo $'06\n07\n08\n09' >>/tmp/test.log
+0
+1
+2
+3
+4
+$ for i in {5..9}; do echo $i >>/tmp/test.log; done
 $ ./recat /tmp/test.log -n 2
-06
-07
+5
+6
 ```
 
 ## memcached-keys
