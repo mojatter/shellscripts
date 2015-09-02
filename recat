@@ -1,0 +1,87 @@
+#!/bin/sh
+
+file=""
+lines=0
+save=1
+status_file=~/.recat
+
+usage() {
+    echo "Usage: recat [OPTION] FILE"
+    echo "Options:"
+    echo "  -n [number]  lines"
+    exit 0
+}
+
+parse_arguments() {
+    local arg_name=""
+    for arg do
+        if [ ! -z "$arg_name" ]; then
+            case "$arg_name" in
+                -n) lines="$arg" ;;
+            esac
+            arg_name=""
+        else
+            case "$arg" in
+                -n) arg_name="$arg" ;;
+                *) file="$arg" ;;
+            esac
+        fi
+    done
+}
+
+parse_arguments $*
+
+test -f "$file" || usage
+for i in "$lines"; do
+    expr $i + 1 >/dev/null 2>&1 || usage
+done
+
+new_status=""
+last_line=0
+if [ -f $status_file ]; then
+    status=`cat $status_file`
+    IFS_ORG=$IFS
+    IFS=$'\n'
+    for l in $status; do
+        last_file=${l%%|*}
+        if [ "$file" = "$last_file" ]; then
+            l=${l#*|}
+            last_line=${l%%|*}
+            last_header=${l#*|}
+        else
+            if [ ! -z "$new_status" ]; then
+                new_status=$new_status"\n"
+            fi
+            new_status=$new_status$l
+        fi
+    done
+    IFS=$IFS_ORG
+fi
+
+header=`head -n 1 $file`
+if [ ! -z "$last_header" ]; then
+    if [ "$header" != "$last_header" ]; then
+        last_line=0
+        last_header=""
+    fi
+fi
+
+next_line=`wc -l $file | cut -d " " -f1`
+if [ $lines -gt 0 ]; then
+    next_line2=$(($last_line + $lines))
+    if [ $next_line -gt $next_line2 ]; then
+        next_line=$next_line2
+    fi
+fi
+
+if [ $save -eq 1 ]; then
+    if [ ! -z "$new_status" ]; then
+        new_status="$new_status\n"
+    fi
+    new_status="$new_status$file|$next_line|$header"
+    echo -e "$new_status" >$status_file
+fi
+
+if [ $next_line -gt $last_line ]; then
+    sed -n "$(($last_line+1)),${next_line}p" $file
+fi
