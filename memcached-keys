@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use IO::Socket::INET;
+
+my $host = shift || 'localhost:11211';
+my $prefix = shift;
+
+my $sock = IO::Socket::INET->new(PeerAddr => $host, Proto => 'tcp') or die $!;
+
+my %slabs;
+
+print $sock "stats slabs\r\n";
+while (<$sock>) {
+    last if /^END/;
+    /^STAT ([0-9]+):used_chunks ([0-9]+)/ or next;
+    $slabs{$1} = $2;
+}
+
+for my $slab (keys %slabs) {
+    printf $sock "stats cachedump %d %d\r\n", $slab, $slabs{$slab};
+    while (<$sock>) {
+        last if /^END/;
+        s/^ITEM //;
+        next if defined($prefix) && index($_, $prefix) != 0;
+        print $_;
+    }
+}
+
+1;
