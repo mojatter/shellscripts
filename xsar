@@ -1,0 +1,54 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+sub sar {
+    my @args = @_;
+    for my $arg (@args) {
+        return sar_r(@args) if $arg eq '-r';
+    }
+    open my $in, '-|', @args or die $!;
+    print while (<$in>);
+    close $in;
+}
+
+sub sar_r {
+    my @args = @_;
+    my $rows = 0;
+    my $time_len = 0;
+    open my $in, '-|', @args or die $!;
+    while (<$in>) {
+        my $line = $_;
+        my ($time, $free, $used, $pused, $buffers, $cached, $commit, $pcommit) = split /[ \n]+/, $line;
+        if ($time && $free eq 'kbmemfree') {
+            printf "%s\t%7s\t%7s\t%7s\n", $time, qw/mbfree mbused %used/;
+            $time_len = length $time;
+        } elsif ($time_len && $free =~ /^[0-9]+$/) {
+            if (++$rows % 24 == 0 && $time !~ /:$/) {
+                print "\n";
+                printf "%s\t%7s\t%7s\t%7s\n", $time, qw/mbfree mbused %used/;
+            }
+            my $diff = $buffers + $cached;
+            my $mb_used = ($used - $diff) / 1024;
+            my $mb_free = ($free + $diff) / 1024;
+            printf "%" . $time_len . "s\t%7d\t%7d\t%7.02f\n", $time, $mb_free, $mb_used, 100 * $mb_used / ($mb_free + $mb_used);
+        } else {
+            print $line;
+        }
+    }
+    close $in;
+}
+
+my $sar = '/usr/bin/sar';
+unless (-x $sar) {
+    open my $in, '-|', qw/which sar/;
+    $sar = <$in>;
+    chop $sar;
+    close $in;
+}
+
+my @args = ($sar, @ARGV);
+sar(@args);
+
