@@ -43,10 +43,11 @@ sub sar_r {
 
 my $sar = '/usr/bin/sar';
 unless (-x $sar) {
-    open my $in, '-|', qw/which sar/;
+    open my $in, '-|', qw/which sar/ or die $!;
     $sar = <$in>;
-    chop $sar;
+    chop $sar if $sar;
     close $in;
+    exit(1) unless ($sar && -x $sar);
 }
 
 my @args = ($sar, @ARGV);
