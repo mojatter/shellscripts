@@ -48,3 +48,12 @@ perl memcached-keys localhost:11211
 perl memcached-keys localhost:11211 member
 perl memcached-keys | sort >sorted-keys.txt
 ```
+
+## dockerfile2sh
+
+Output sh scripts from Dockerfile
+
+```
+Usage:
+perl dockerfile2sh [Dockerfile]
+```
