@@ -1,0 +1,55 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+sub usage {
+    print "Usage: $0 [Dockerfile]\n";
+    exit(0);
+}
+usage if @ARGV == 0 || !-f $ARGV[0];
+
+print "#!/bin/sh\n";
+my $user;
+my $work_dir = '';
+my $line = '';
+while (<>) {
+    /\s*(.*)\s*/;
+    my $l = $1 or next;
+    $l =~ /^#/ and next;
+    if ($l =~ /(.*) \\$/) {
+        $line .= $1 . ' ';
+        next;
+    }
+    $line .= $l;
+    if ($line =~ /^(RUN|CMD|ENV|WORKDIR|USER) +(.+)/i) {
+        my $docker = uc $1;
+        my $value = $2;
+        if ($docker eq 'RUN') {
+            print "cd $work_dir && " if $work_dir;
+            $value =~ s/ && / && \\\n    /g;
+            print "$value\n";
+        } elsif ($docker eq 'CMD' && $value =~ /^\[(.+?)\]/) {
+            $value = $1;
+            my @cmd = ($value =~ /"(.+?)"/sg);
+            print join(' ', @cmd) . "\n";
+        } elsif ($docker eq 'ENV') {
+            if ($value =~ /(.+?) +(.+)/) {
+                print "export $1=$2\n";
+            } else {
+                warn '[WARN] unknown ENV: ' . $line;
+            }
+        } elsif ($docker eq 'WORKDIR') {
+            $work_dir = $value;
+        } elsif ($docker eq 'USER') {
+            print "exit\n" if $user;
+            $user = $value;
+            print "su $user\n";
+        }
+    } elsif ($line =~ /^(FROM|MAINTAINER|EXPOSE|ADD|COPY|ENTRYPOINT|VOLUME|ONBUILD)/) {
+        # NOTE unsupported show only
+        print "# $line\n";
+    } else {
+        warn '[WARN] unknown line: ' . $line;
+    }
+    $line = '';
+}
