@@ -1,6 +1,4 @@
-# xtools
-
-Useful shell scripts
+# shell scripts
 
 ## recat
 
@@ -15,17 +13,18 @@ Options:
 Example
 
 ```
-$ for i in {0..4}; do echo $i >>/tmp/test.log; done
+$ for i in {0..4}; do echo "i $i" >>/tmp/test.log; done
 $ ./recat /tmp/test.log
-0
-1
-2
-3
-4
-$ for i in {5..9}; do echo $i >>/tmp/test.log; done
+i 0
+i 1
+i 2
+i 3
+i 4
+
+$ for i in {5..6}; do echo "i $i" >>/tmp/test.log; done
 $ ./recat /tmp/test.log -n 2
-5
-6
+i 5
+i 6
 ```
 
 ## memcached-keys
