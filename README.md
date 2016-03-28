@@ -1,5 +1,16 @@
 # shell scripts
 
+## oldps
+
+finding old process and output tab separated pid,lstart,args.
+
+```
+Usage: oldps [target date string] (--grep=[grep args])
+Examples:
+  oldps yesterday --grep=php
+  oldps yesterday --grep=php | cut -f1 | xargs kill
+```
+
 ## recat
 
 "recat" utility reads file, writing them to the standard output and keeps line position.

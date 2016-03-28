@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# NOTE: depends GNU
+
+usage() {
+    echo "Usage: $0 [target date string] (--grep=[grep args])"
+    echo "Examples:"
+    echo "  $0 yesterday --grep=php"
+    exit 0
+}
+
+oldps() {
+    local tmp=$1
+    shift
+
+    local grepArgs="-v PID"
+    local targetDateStr=""
+    for arg in $*; do
+        case "$arg" in
+            --grep=*)
+                grepArgs="$grepArgs | grep ${arg#*=}"
+                ;;
+            *)
+                targetDateStr="$arg"
+                ;;
+        esac
+    done
+    [ -z "$targetDateStr" ] && usage
+
+    LANG=c
+    date -d "$targetDateStr" >/dev/null 2>&1 || return $?
+    local expire=`date -d "$targetDateStr" +'%s'`
+    local cmd="ps -eo pid,lstart,args | grep $grepArgs | sed -r -e 's/^ +//g' -e 's/ +/ /g'"
+    eval $cmd >$tmp || return $?
+    IFS=$'\n'
+    for line in `cat $tmp`; do
+        IFS=
+        local dateStr=`echo "$line" | cut -d ' ' -f2-6`
+        local startTime=`date -d "$dateStr" '+%s'`
+        if [ $startTime -lt $expire ]; then
+            local pid=`echo "$line" | cut -d ' ' -f1`
+            local args=`echo "$line" | cut -d ' ' -f7-`
+            echo -e "$pid\t$dateStr\t$args"
+        fi
+    done
+}
+
+main() {
+    local tmp="/tmp/$$.txt"
+    oldps $tmp $*
+    local ret=$?
+    rm -f $tmp
+    return $ret
+}
+
+main $*
